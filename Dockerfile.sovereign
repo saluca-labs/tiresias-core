@@ -1,0 +1,56 @@
+FROM python:3.12-slim-bookworm AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
+
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir build \
+    && python -m build --wheel --outdir /wheels
+
+RUN pip install --no-cache-dir --target=/deps \
+    cryptography==42.0.8 \
+    aiosqlite==0.20.0 \
+    sqlalchemy[asyncio]==2.0.38 \
+    apscheduler==3.10.4 \
+    pydantic==2.9.2 \
+    pydantic-settings==2.5.2 \
+    python-dotenv==1.0.1 \
+    fastapi==0.115.0 \
+    httpx==0.27.2 \
+    uvicorn==0.32.0 \
+    tiktoken==0.7.0 \
+    asyncpg==0.29.0 \
+    structlog==24.4.0 \
+    pyyaml==6.0.2
+
+FROM gcr.io/distroless/python3-debian12:nonroot
+
+ENV PROXY_PORT=8080
+ENV LOG_LEVEL=info
+ENV PYTHONPATH=/deps
+
+WORKDIR /app
+
+COPY --from=builder /deps /deps
+COPY --from=builder /wheels /wheels
+COPY --from=builder /app/src /app/src
+COPY policies/ /app/policies/
+
+EXPOSE 8080
+
+LABEL org.opencontainers.image.source="https://github.com/cristianxruvalcaba-coder/tiresias-core"
+LABEL org.opencontainers.image.title="tiresias-core"
+LABEL org.opencontainers.image.description="Sovereign AI observability proxy with PQ-TLS"
+LABEL org.opencontainers.image.licenses="BUSL-1.1"
+
+CMD ["-m", "uvicorn", "tiresias.proxy.app:app", "--host", "0.0.0.0", "--port", "8080"]
