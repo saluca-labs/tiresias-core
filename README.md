@@ -16,7 +16,7 @@ Tiresias is the identity and authorization layer for autonomous AI systems. It s
 Agent Framework → [ Tiresias: Identity | Policy | Audit | Detection ] → Production
 ```
 
-**Self-hosted by default. Model-agnostic. Apache 2.0 core.**
+**Self-hosted by default. Model-agnostic. Source-available core (FSL-1.1-Apache, converts to Apache 2.0 after two years).**
 
 ## Core Capabilities
 
@@ -56,7 +56,7 @@ Point your OpenAI SDK at `http://localhost:8080/v1` — no code changes required
 | Multi-provider failover | **Yes** | No | No | No | No | Yes |
 | Non-LLM API analytics | **Yes** | No | No | No | No | No |
 | Air-gap support | **Yes** (ent) | No | No | No | No | No |
-| Open source core | Apache 2.0 | MIT | Apache 2.0 | MIT | Closed | Closed |
+| Core licence | FSL 1.1 -> Apache 2.0 | MIT | Apache 2.0 | MIT | Closed | Closed |
 
 ## MASP: Managed Agent Security Protection
 
@@ -70,7 +70,7 @@ Tiresias is the MASP layer — drop it into any agent platform to get identity, 
 
 | Module | License | Description |
 |--------|---------|-------------|
-| `tiresias-core` | Apache 2.0 | Proxy, dashboard, identity, audit, policy, analytics, multi-provider routing |
+| `tiresias-core` | FSL-1.1-Apache | Proxy, dashboard, identity, audit, policy, analytics, multi-provider routing |
 | `tiresias-enterprise` | Commercial | BYOK encryption, Aletheia CoT auditing, air-gap license relay, SIEM integration, MSSP/white-label |
 
 ## Learn More
@@ -87,4 +87,4 @@ Contact enterprise@saluca.com for enterprise licensing, BYOK, air-gap deployment
 
 ---
 
-*Built by [Saluca LLC](https://saluca.com). Apache 2.0 core. Enterprise tier available.*
+*Built by [Saluca LLC](https://saluca.com). Source-available core under FSL-1.1-Apache. Enterprise tier available.*
