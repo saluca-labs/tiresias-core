@@ -23,8 +23,8 @@ Agent Framework → [ Tiresias: Identity | Policy | Audit | Detection ] → Prod
 | Capability | What It Does |
 |-----------|-------------|
 | **Soulkeys** | Persistent cryptographic identity for AI agents. SHA-512, tenant-scoped, revocable. Every action logged against agent identity. |
-| **Immutable Audit** | Tamper-evident hash-chain log. Each entry references the previous hash. Multi-replica safe. 15+ event types. |
-| **Aletheia (CoT Auditing)** | Chain-of-thought capture with integrity guarantees. Encrypted at rest. Policy enforcement on the reasoning itself — inject/reject/warn. |
+| **Immutable Audit** | Structured audit events for 15+ event types, with per-request and per-response content hashes. The tamper-evident hash chain over those events (each entry referencing the previous hash, multi-replica safe) runs in the Tiresias platform, not in this repository. Format and an independent verifier: see Learn More. |
+| **Aletheia (CoT Auditing)** (enterprise) | Chain-of-thought capture with integrity guarantees. Encrypted at rest. Policy enforcement on the reasoning itself — inject/reject/warn. |
 | **Policy Engine (PDP/PEP)** | YAML policy definitions, git-managed. Capability tokens (JWT). Tool policy engine controls what agents can invoke and when. |
 | **Anomaly Detection** | 18 detection types. Behavioral baselines per agent. Real-time alerting. SIEM integration (Splunk, Elastic, Syslog, Sentinel). |
 | **Observability Proxy** | Full request/response logging with envelope encryption. Token cost tracking. Multi-provider routing with automatic failover. |
@@ -48,7 +48,7 @@ Point your OpenAI SDK at `http://localhost:8080/v1` — no code changes required
 |---|----------|-----------|----------|----------|-------------|---------|
 | Self-hosted | **Yes** | No | Partial | Yes | No | No |
 | Agent identity (soulkeys) | **Yes** | No | No | No | No | No |
-| Hash-chain audit integrity | **Yes** | No | No | No | No | No |
+| Hash-chain audit integrity | **Yes** (platform) | No | No | No | No | No |
 | CoT auditing + enforcement | **Yes** | No | No | No | No | No |
 | Policy engine (PDP/PEP) | **Yes** | No | No | No | No | No |
 | Anomaly detection | **Yes** | No | No | No | No | No |
@@ -70,7 +70,7 @@ Tiresias is the MASP layer — drop it into any agent platform to get identity, 
 
 | Module | License | Description |
 |--------|---------|-------------|
-| `tiresias-core` | Apache 2.0 | Proxy, dashboard, identity, audit, policy, analytics, multi-provider routing |
+| `tiresias-core` | FSL-1.1-Apache | Proxy, dashboard, identity, audit, policy, analytics, multi-provider routing. Source-available now; each release becomes Apache-2.0 two years after it ships. |
 | `tiresias-enterprise` | Commercial | BYOK encryption, Aletheia CoT auditing, air-gap license relay, SIEM integration, MSSP/white-label |
 
 ## Learn More
