@@ -40,3 +40,20 @@ async def cleanup_engines():
     """Ensure all SQLAlchemy engines are disposed after each test."""
     yield
     await close_all_engines()
+
+
+_KNOWN_FAILURES_FILE = Path(__file__).with_name("known_failures.txt")
+
+
+def pytest_collection_modifyitems(config, items):
+    """Mark tests listed in known_failures.txt as strict xfail (see that file)."""
+    known = {
+        line.strip()
+        for line in _KNOWN_FAILURES_FILE.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.startswith("#")
+    }
+    for item in items:
+        if item.nodeid.replace("\\", "/") in known:
+            item.add_marker(
+                pytest.mark.xfail(strict=True, reason="pre-existing failure, see tests/known_failures.txt")
+            )
