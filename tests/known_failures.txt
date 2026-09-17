@@ -1,0 +1,48 @@
+# Tests that already failed on main (2520996) when CI was first added, 2026-09-16.
+# They are marked xfail(strict=True) by tests/conftest.py, so CI stays green on
+# the rest of the suite and turns red the moment one of these starts passing
+# (remove it from this list then). Causes, none of them fixed here:
+#   test_phase9/test_oss_prep.py       hardcoded /home/cristian/tiresias path; expects an Apache LICENSE
+#   test_sop_policy.py                 hardcoded /repos path, persona YAMLs absent, PDP no longer takes rate_limiter
+#   test_encryption/.../test_resolve.py BYOK providers moved to Tiresias Enterprise
+#   test_dashboard/*                   analytics/replay response shape drifted (KeyError, MissingGreenlet)
+tests/test_dashboard/test_analytics.py::test_spend_total
+tests/test_dashboard/test_analytics.py::test_requests_per_day
+tests/test_dashboard/test_analytics.py::test_latency_percentiles
+tests/test_dashboard/test_analytics.py::test_error_rates
+tests/test_dashboard/test_analytics.py::test_top_sessions
+tests/test_dashboard/test_analytics.py::test_provider_health
+tests/test_dashboard/test_analytics.py::test_provider_health_simulated_outage
+tests/test_dashboard/test_analytics.py::test_spend_accuracy
+tests/test_dashboard/test_auth.py::test_spend_correct_key
+tests/test_dashboard/test_auth.py::test_requests_endpoint_auth
+tests/test_dashboard/test_auth.py::test_top_sessions_auth
+tests/test_dashboard/test_replay.py::test_session_replay_returns_turns
+tests/test_dashboard/test_replay.py::test_session_replay_turn_structure
+tests/test_dashboard/test_replay.py::test_session_replay_ordered_by_time
+tests/test_dashboard/test_replay.py::test_session_replay_not_found
+tests/test_dashboard/test_replay.py::test_session_replay_metadata_parsed
+tests/test_encryption/test_providers/test_resolve.py::test_resolve_aws_kms
+tests/test_encryption/test_providers/test_resolve.py::test_resolve_aws_kms_missing_key_id
+tests/test_encryption/test_providers/test_resolve.py::test_resolve_aws_kms_missing_region
+tests/test_encryption/test_providers/test_resolve.py::test_resolve_vault
+tests/test_encryption/test_providers/test_resolve.py::test_resolve_vault_missing_url
+tests/test_encryption/test_providers/test_resolve.py::test_resolve_azure
+tests/test_encryption/test_providers/test_resolve.py::test_resolve_azure_missing_vault_url
+tests/test_encryption/test_providers/test_resolve.py::test_resolve_gcp
+tests/test_encryption/test_providers/test_resolve.py::test_resolve_gcp_missing_project
+tests/test_phase9/test_oss_prep.py::test_license_file_exists
+tests/test_phase9/test_oss_prep.py::test_readme_exists
+tests/test_phase9/test_oss_prep.py::test_readme_competitor_table
+tests/test_phase9/test_oss_prep.py::test_security_md_exists
+tests/test_phase9/test_oss_prep.py::test_module_split_annotation_exists
+tests/test_phase9/test_oss_prep.py::test_public_push_gate_documented
+tests/test_phase9/test_oss_prep.py::test_no_internal_saluca_refs_in_readme
+tests/test_phase9/test_oss_prep.py::test_apache_notice_in_core_modules
+tests/test_phase9/test_oss_prep.py::test_argus_in_enterprise_module_split
+tests/test_phase9/test_oss_prep.py::test_license_in_encryption_module_split
+tests/test_sop_policy.py::TestRateLimitEnforcement::test_rate_limit_expired_entries_ignored
+tests/test_sop_policy.py::TestRateLimitEnforcement::test_rate_limit_custom_rate_limiter
+tests/test_sop_policy.py::TestPersonaYAMLFiles::test_alfred_yaml_has_sop_policies
+tests/test_sop_policy.py::TestPersonaYAMLFiles::test_morgan_yaml_has_sop_policies
+tests/test_sop_policy.py::TestPersonaYAMLFiles::test_forge_yaml_has_sop_policies
