@@ -1,5 +1,11 @@
 # Tiresias Roadmap
 
+> **Note, 2026-10-22:** the "Shipped" list below describes the Tiresias product, not this repository.
+> Checked against `main` at 3c634b6, this repository does not contain the observer sidecar, the incident
+> controller, the Grafana SOC stack, licence enforcement, or BYOK key providers other than local (the
+> others raise "requires Tiresias Enterprise"); its pricing table has 30 model entries, not 52; per-tier
+> rate limits (`proxy/rate_limit.py`) are the only tiering in core. The list is kept unchanged below.
+
 ## Shipped
 
 ### v1.0.0 — Core Proxy

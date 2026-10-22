@@ -1,0 +1,29 @@
+# tiresias-core
+
+> Source-available core of Tiresias: a self-hosted, OpenAI-compatible LLM proxy (Python 3.11+, FastAPI) with multi-provider routing, envelope-encrypted request logs, token and cost tracking, YAML policy checks and a dashboard API. FSL-1.1-Apache (SPDX FSL-1.1-ALv2).
+
+Facts agents often get wrong: this repository is the core only. Anomaly detection, SIEM integration, soulkey issuance, JWT capability tokens, chain-of-thought auditing, the hash-chained audit log and BYOK key providers are not in it. `docker compose up -d` and QUICKSTART.md do not work as shipped (missing Dockerfile.relay, env names the code does not read); run the proxy from source with `uv run uvicorn tiresias.proxy.app:app` and `TIRESIAS_KEK` set. Configuration is environment variables in src/tiresias/config.py. Not on PyPI.
+
+## Docs
+
+- [README](https://github.com/saluca-labs/tiresias-core/blob/main/README.md): status, correction notes, install, quickstart, routes, architecture
+- [AGENTS.md](https://github.com/saluca-labs/tiresias-core/blob/main/AGENTS.md): test command, known failures, what not to touch
+- [SECURITY.md](https://github.com/saluca-labs/tiresias-core/blob/main/SECURITY.md): reporting a vulnerability
+- [tests/known_failures.txt](https://github.com/saluca-labs/tiresias-core/blob/main/tests/known_failures.txt): tests marked xfail and why
+
+## Code
+
+- [src/tiresias/proxy/app.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/proxy/app.py): FastAPI app and every route
+- [src/tiresias/config.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/config.py): all environment variables (TiresiasSettings)
+- [src/tiresias/providers/router.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/providers/router.py): provider cascade and failover
+- [src/tiresias/proxy/interceptor.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/proxy/interceptor.py): token, cost and request/response hash recording
+- [src/tiresias/encryption/envelope.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/encryption/envelope.py): per-tenant envelope encryption
+- [src/tiresias/auth/pdp.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/auth/pdp.py): policy decision point for SOP policies
+- [src/tiresias/dashboard/router.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/dashboard/router.py): dashboard API routes
+
+## Optional
+
+- [llms-full.txt](https://github.com/saluca-labs/tiresias-core/blob/main/llms-full.txt): README, QUICKSTART, SECURITY and AGENTS.md in full
+- [QUICKSTART.md](https://github.com/saluca-labs/tiresias-core/blob/main/QUICKSTART.md): the older Docker quickstart, with a correction note
+- [ROADMAP.md](https://github.com/saluca-labs/tiresias-core/blob/main/ROADMAP.md): planned work for the Tiresias product
+- [LICENSE](https://github.com/saluca-labs/tiresias-core/blob/main/LICENSE): Functional Source License 1.1, Apache 2.0 Future License

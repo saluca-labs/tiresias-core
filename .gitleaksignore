@@ -1,0 +1,9 @@
+# Reviewed gitleaks findings. Each entry is a fingerprint with the reason: commit:file:rule:line for
+# `gitleaks git` (history), file:rule:line for `gitleaks dir` (working tree).
+#
+# Reviewed 2026-10-22: test fixture, not a credential. The value is a placeholder API key
+# (it contains the word "test") that the dashboard auth tests hash and seed into a temporary
+# per-test SQLite database. It appears only in tests/test_dashboard/test_auth.py and
+# tests/test_encryption/test_providers/test_local.py and authenticates nothing outside the suite.
+fcc1cfaebcdc1e84635546cf999888c677375486:tests/test_dashboard/test_auth.py:generic-api-key:28
+tests/test_dashboard/test_auth.py:generic-api-key:28

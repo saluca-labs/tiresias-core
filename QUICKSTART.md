@@ -1,4 +1,15 @@
-# Tiresias — Quickstart
+# Tiresias quickstart
+
+> **Correction, 2026-10-22: these steps do not work as written.** Checked against `main` at 3c634b6:
+> the clone URL below is the repository's old location (GitHub redirects it to
+> `https://github.com/saluca-labs/tiresias-core`), and the clone directory is `tiresias-core`, not `tiresias`;
+> `docker compose up -d` fails because `Dockerfile.relay` is not in the repository; the code reads none of
+> `TIRESIAS_LICENSE_TOKEN`, `ENCRYPTION_KEY` or `DATABASE_URL` (it reads `TIRESIAS_KEK` and
+> `TIRESIAS_DATABASE_URL`), so the proxy container exits at startup; the dashboard container's command
+> names a module attribute that does not exist; and no licence token is needed, because nothing in this
+> repository checks one.
+> Use the source-install Quickstart in [README.md](./README.md#quickstart), which was run on 2026-10-22.
+> The original text is kept below unchanged.
 
 From clone to first dashboard data in under 10 minutes.
 
