@@ -51,6 +51,15 @@ class SecretRedactingFilter(logging.Filter):
         if hit:
             record.msg = msg
             record.args = None
+        if record.exc_info and not record.exc_text:
+            record.exc_text = logging.Formatter().formatException(record.exc_info)
+        if record.exc_text:
+            text = record.exc_text
+            for secret in self._secrets:
+                text = text.replace(secret, "[REDACTED]")
+            if text != record.exc_text:
+                record.exc_text = text
+                record.exc_info = None
         return True
 
 
@@ -161,6 +170,14 @@ async def first_boot(
     api_key = generate_api_key()
     redact_in_logs(api_key)
 
+    # Show the key once, never through logging, BEFORE anything is persisted.
+    # It used to go to logger.info, which put it in every log handler, file
+    # and aggregator. If showing it fails (read-only data root, say) nothing
+    # has been written yet, so the next boot simply tries again; the other
+    # order would store the hash of a key nobody ever saw and lock the tenant
+    # out for good.
+    _show_key_once(api_key, tenant_id, settings, out if out is not None else sys.stdout)
+
     # Resolve KEK provider using factory — handles all 5 provider types
     provider = resolve_kek_provider(settings, api_key=api_key)
 
@@ -176,9 +193,6 @@ async def first_boot(
     license_row.retention_days = settings.retention_days
     await session.commit()
 
-    # Show the key once, never through logging. It used to go to logger.info,
-    # which put it in every log handler, file and aggregator.
-    _show_key_once(api_key, tenant_id, settings, out if out is not None else sys.stdout)
 
     return api_key
 

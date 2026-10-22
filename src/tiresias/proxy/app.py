@@ -19,6 +19,7 @@ from tiresias.proxy.headers import (
     generic_upstream_headers,
     llm_upstream_headers,
     merge_provider_headers,
+    strip_client_provider_credentials,
 )
 from tiresias.proxy.rate_limit import RateLimitMiddleware
 from tiresias.proxy.saas_auth import SaaSAuthMiddleware
@@ -230,7 +231,9 @@ def create_app(settings: TiresiasSettings | None = None) -> FastAPI:
             resolved_provider = _resolve_provider_for_model(model, cfg)
             if resolved_provider:
                 target_url, provider_headers, stream_body = resolved_provider.format_request(body)
-                upstream_headers = merge_provider_headers(upstream_headers, provider_headers)
+                upstream_headers = merge_provider_headers(
+                    strip_client_provider_credentials(upstream_headers), provider_headers
+                )
                 upstream_provider = resolved_provider.name
             else:
                 upstream_url = cfg.upstream_url.rstrip("/")

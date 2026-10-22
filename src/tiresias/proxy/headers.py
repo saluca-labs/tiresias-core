@@ -50,6 +50,9 @@ LLM_FORWARD_ALLOWLIST = frozenset({
     "user-agent",
     "idempotency-key",
     "x-request-id",
+    # OpenRouter attribution
+    "http-referer",
+    "x-title",
     # OpenAI
     "openai-organization",
     "openai-project",
@@ -57,6 +60,7 @@ LLM_FORWARD_ALLOWLIST = frozenset({
     # Anthropic
     "anthropic-version",
     "anthropic-beta",
+    "anthropic-dangerous-direct-browser-access",
     # Provider credentials a caller passes through on purpose (legacy
     # single-upstream mode). In multi-provider mode the provider's own
     # credential replaces these, see merge_provider_headers().
@@ -69,6 +73,19 @@ LLM_FORWARD_ALLOWLIST = frozenset({
 # request.state attribute set by the auth middleware to the lower-cased name of
 # the header that carried the accepted Tiresias credential.
 CREDENTIAL_HEADER_STATE_ATTR = "tiresias_credential_header"
+
+# request.state attribute holding the accepted credential VALUE. Any header
+# that contains it is dropped, whatever its name: a client that sends the key
+# in X-Tiresias-Api-Key AND in Authorization must not have the second copy
+# forwarded.
+CREDENTIAL_VALUE_STATE_ATTR = "tiresias_credential_value"
+
+# Credentials a client may pass through to ITS OWN provider. In multi-provider
+# (router) mode the proxy supplies each provider's credential itself, so these
+# are dropped: on failover they would otherwise reach a different provider.
+CLIENT_PROVIDER_CREDENTIAL_HEADERS = frozenset({
+    "authorization", "x-api-key", "api-key", "x-goog-api-key",
+})
 
 
 def _is_tiresias_authorization(value: str, credential_header: str | None) -> bool:
@@ -84,15 +101,34 @@ def _credential_header_for(request_state) -> str | None:
     return getattr(request_state, CREDENTIAL_HEADER_STATE_ATTR, None)
 
 
+def _credential_value_for(request_state) -> str | None:
+    if request_state is None:
+        return None
+    v = getattr(request_state, CREDENTIAL_VALUE_STATE_ATTR, None)
+    return v or None
+
+
+def _carries(value: str, secret: str | None) -> bool:
+    return bool(secret) and secret in value
+
+
+def strip_client_provider_credentials(headers: Mapping[str, str]) -> dict[str, str]:
+    """Drop the client's own provider credentials (router mode)."""
+    return {k: v for k, v in headers.items() if k.lower() not in CLIENT_PROVIDER_CREDENTIAL_HEADERS}
+
+
 def llm_upstream_headers(headers: Mapping[str, str], request_state=None) -> dict[str, str]:
     """Allowlisted subset of ``headers`` to send to an LLM provider."""
     cred_hdr = _credential_header_for(request_state)
+    cred_val = _credential_value_for(request_state)
     out: dict[str, str] = {}
     for k, v in headers.items():
         lk = k.lower()
         if lk not in LLM_FORWARD_ALLOWLIST:
             continue
         if lk == "authorization" and _is_tiresias_authorization(v, cred_hdr):
+            continue
+        if _carries(v, cred_val):
             continue
         out[lk] = v
     return out
@@ -101,6 +137,7 @@ def llm_upstream_headers(headers: Mapping[str, str], request_state=None) -> dict
 def generic_upstream_headers(headers: Mapping[str, str], request_state=None) -> dict[str, str]:
     """``headers`` minus hop-by-hop and Tiresias headers, for the generic /api proxy."""
     cred_hdr = _credential_header_for(request_state)
+    cred_val = _credential_value_for(request_state)
     drop = HOP_BY_HOP_HEADERS | TIRESIAS_CREDENTIAL_HEADERS | TIRESIAS_INTERNAL_HEADERS
     out: dict[str, str] = {}
     for k, v in headers.items():
@@ -108,6 +145,8 @@ def generic_upstream_headers(headers: Mapping[str, str], request_state=None) -> 
         if lk in drop:
             continue
         if lk == "authorization" and _is_tiresias_authorization(v, cred_hdr):
+            continue
+        if _carries(v, cred_val):
             continue
         out[lk] = v
     return out

@@ -36,7 +36,7 @@ from starlette.responses import JSONResponse, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tiresias.proxy.headers import CREDENTIAL_HEADER_STATE_ATTR
+from tiresias.proxy.headers import CREDENTIAL_HEADER_STATE_ATTR, CREDENTIAL_VALUE_STATE_ATTR
 from tiresias.storage.schema import TiresiasLicense
 
 if TYPE_CHECKING:
@@ -74,12 +74,14 @@ def _extract_api_key(request: Request) -> str | None:
     key = request.headers.get("x-tiresias-api-key")
     if key:
         setattr(request.state, CREDENTIAL_HEADER_STATE_ATTR, "x-tiresias-api-key")
+        setattr(request.state, CREDENTIAL_VALUE_STATE_ATTR, key.strip())
         return key.strip()
 
     # Fall back to Authorization: Bearer
     auth = request.headers.get("authorization", "")
     if auth.lower().startswith("bearer ") and auth[7:].strip().startswith("tir_"):
         setattr(request.state, CREDENTIAL_HEADER_STATE_ATTR, "authorization")
+        setattr(request.state, CREDENTIAL_VALUE_STATE_ATTR, auth[7:].strip())
         return auth[7:].strip()
 
     return None
@@ -220,6 +222,7 @@ class SaaSAuthMiddleware(BaseHTTPMiddleware):
         for header, value in candidates:
             if hmac.compare_digest(_hash_api_key(value), stored_hash):
                 setattr(request.state, CREDENTIAL_HEADER_STATE_ATTR, header)
+                setattr(request.state, CREDENTIAL_VALUE_STATE_ATTR, value)
                 return await call_next(request)
         return JSONResponse(
             status_code=401,
