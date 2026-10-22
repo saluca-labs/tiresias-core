@@ -7,6 +7,7 @@ import httpx
 
 from .base import BaseProvider
 from .health import HealthTracker
+from tiresias.proxy.headers import merge_provider_headers
 
 logger = logging.getLogger(__name__)
 
@@ -64,10 +65,10 @@ class ProviderRouter:
             provider = self._builder(provider_name)
             try:
                 url, provider_headers, provider_body = provider.format_request(request_body)
-                merged_headers = {**extra_headers, **provider_headers}
-                # Remove host header -- it will be wrong for the new upstream
-                merged_headers.pop("host", None)
-                merged_headers.pop("Host", None)
+                # Case-insensitive: a plain dict merge kept the client's
+                # lower-cased "authorization" next to the provider's
+                # "Authorization" and httpx sent both. Also drops host.
+                merged_headers = merge_provider_headers(extra_headers, provider_headers)
 
                 resp = await self._http_client.post(
                     url,

@@ -15,6 +15,11 @@ from tiresias.config import TiresiasSettings, parse_providers
 from tiresias.encryption.envelope import EnvelopeEncryption
 from tiresias.encryption.providers import resolve_kek_provider
 from tiresias.proxy.interceptor import record_error_turn, record_turn
+from tiresias.proxy.headers import (
+    generic_upstream_headers,
+    llm_upstream_headers,
+    merge_provider_headers,
+)
 from tiresias.proxy.rate_limit import RateLimitMiddleware
 from tiresias.proxy.saas_auth import SaaSAuthMiddleware
 from tiresias.providers import build_provider
@@ -149,6 +154,12 @@ def create_app(settings: TiresiasSettings | None = None) -> FastAPI:
                 api_key = await first_boot(cfg.tenant_id, cfg, session)
                 if api_key:
                     logger.info("First boot complete. Tenant: %s", cfg.tenant_id)
+        if cfg.mode != "saas" and cfg.allow_unauthenticated:
+            logger.warning(
+                "TIRESIAS_ALLOW_UNAUTHENTICATED is set: this proxy answers ANY caller "
+                "on every route, admin routes included, with no API key. Only safe "
+                "on a single-user proxy bound to 127.0.0.1."
+            )
         cascade = parse_providers(cfg.providers)
         logger.info(
             "Tiresias proxy started. Mode: %s, Providers: %s",
@@ -191,7 +202,11 @@ def create_app(settings: TiresiasSettings | None = None) -> FastAPI:
 
     @app.get("/health")
     async def health() -> dict:
-        return {"status": "ok", "service": "tiresias-proxy", "mode": _cfg_for_middleware.mode}
+        auth = "api_key"
+        if _cfg_for_middleware.mode != "saas" and _cfg_for_middleware.allow_unauthenticated:
+            auth = "disabled"
+        return {"status": "ok", "service": "tiresias-proxy",
+                "mode": _cfg_for_middleware.mode, "auth": auth}
 
     @app.post("/v1/chat/completions")
     async def chat_completions(request: Request) -> Response:
@@ -207,11 +222,7 @@ def create_app(settings: TiresiasSettings | None = None) -> FastAPI:
         is_streaming = body.get("stream", False)
         session_id = parse_session_id(request.headers.get("x-tiresias-session-id"))
         extra_metadata = body.pop("tiresias_metadata", None)
-        upstream_headers = {
-            k: v
-            for k, v in request.headers.items()
-            if k.lower() not in ("host", "content-length", "transfer-encoding", "x-tiresias-api-key")
-        }
+        upstream_headers = llm_upstream_headers(request.headers, request.state)
 
         if is_streaming:
             # Model-prefix routing: if the model has a known provider prefix
@@ -219,7 +230,7 @@ def create_app(settings: TiresiasSettings | None = None) -> FastAPI:
             resolved_provider = _resolve_provider_for_model(model, cfg)
             if resolved_provider:
                 target_url, provider_headers, stream_body = resolved_provider.format_request(body)
-                upstream_headers.update(provider_headers)
+                upstream_headers = merge_provider_headers(upstream_headers, provider_headers)
                 upstream_provider = resolved_provider.name
             else:
                 upstream_url = cfg.upstream_url.rstrip("/")
@@ -327,11 +338,7 @@ def create_app(settings: TiresiasSettings | None = None) -> FastAPI:
         client = get_http_client()
         body_bytes = await request.body()
         params = dict(request.query_params)
-        upstream_headers = {
-            k: v
-            for k, v in request.headers.items()
-            if k.lower() not in ("host", "content-length", "transfer-encoding", "x-tiresias-api-key")
-        }
+        upstream_headers = generic_upstream_headers(request.headers, request.state)
 
         from tiresias.proxy.generic import forward_generic_request
 
@@ -433,11 +440,9 @@ def create_app(settings: TiresiasSettings | None = None) -> FastAPI:
         client = get_http_client()
         upstream_url = cfg.upstream_url.rstrip("/")
         target_url = f"{upstream_url}/v1/{path}"
-        upstream_headers = {
-            k: v
-            for k, v in request.headers.items()
-            if k.lower() not in ("host", "content-length", "transfer-encoding")
-        }
+        # Allowlist, not a strip list: this route used to forward every header
+        # except three, which sent x-tiresias-api-key to the upstream provider.
+        upstream_headers = llm_upstream_headers(request.headers, request.state)
         body_bytes = await request.body()
         params = dict(request.query_params)
         try:

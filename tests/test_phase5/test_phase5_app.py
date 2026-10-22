@@ -8,6 +8,7 @@ from asgi_lifespan import LifespanManager
 from httpx import AsyncClient, ASGITransport, Response as HttpxResponse
 
 from tiresias.config import TiresiasSettings
+from tests.conftest import provision_tenant_key
 from tiresias.proxy.app import create_app
 from tiresias.storage.engine import close_all_engines
 
@@ -27,9 +28,14 @@ def phase5_settings(tmp_path):
 
 @pytest.fixture
 async def phase5_client(phase5_settings):
+    api_key = await provision_tenant_key(phase5_settings)
     app = create_app(settings=phase5_settings)
     async with LifespanManager(app):
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+            headers={"X-Tiresias-Api-Key": api_key},
+        ) as client:
             yield client
     await close_all_engines()
 
