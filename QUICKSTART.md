@@ -69,7 +69,7 @@ print(response.choices[0].message.content)
 
 ### 4. View the dashboard (30 sec)
 
-Open http://localhost:3000 — you'll see the request, token count, cost, and latency.
+Open http://localhost:3000 - you'll see the request, token count, cost, and latency.
 
 ## Port overrides
 
