@@ -1,3 +1,5 @@
+![tiresias-core](docs/img/banner-2026-10-23.jpg)
+
 # tiresias-core
 
 The source-available core of Tiresias: a self-hosted, OpenAI-compatible LLM proxy in Python that routes across providers, encrypts what it logs, tracks tokens and cost per session, and checks requests against YAML policies, with a dashboard API over the stored data.
