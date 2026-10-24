@@ -57,3 +57,35 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(
                 pytest.mark.xfail(strict=True, reason="pre-existing failure, see tests/known_failures.txt")
             )
+
+
+class _TTY:
+    """A throwaway terminal for first_boot() to show the key on."""
+
+    def write(self, _s: str) -> int:
+        return 0
+
+    def flush(self) -> None:
+        pass
+
+    def isatty(self) -> bool:
+        return True
+
+
+async def provision_tenant_key(settings: TiresiasSettings) -> str:
+    """Run first_boot for `settings` and return the tenant's API key.
+
+    Single-tenant proxies require that key on every route, so app-level tests
+    provision it before the app's own lifespan runs (first_boot is idempotent,
+    so the lifespan then finds the tenant initialised).
+    """
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from tiresias.bootstrap import first_boot
+    from tiresias.storage.engine import get_engine
+
+    engine = await get_engine(settings.tenant_id, settings.data_root)
+    async with AsyncSession(engine) as session:
+        key = await first_boot(settings.tenant_id, settings, session, out=_TTY())
+    assert key, "tenant was already initialised; use a fresh data root"
+    return key

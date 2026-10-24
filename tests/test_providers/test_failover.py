@@ -6,6 +6,7 @@ from httpx import AsyncClient, ASGITransport, Response as HttpxResponse
 from asgi_lifespan import LifespanManager
 
 from tiresias.config import TiresiasSettings
+from tests.conftest import provision_tenant_key
 from tiresias.proxy.app import create_app
 from tiresias.storage.engine import close_all_engines
 
@@ -27,9 +28,14 @@ async def failover_client(multi_provider_settings, monkeypatch):
     # Set API keys in env so build_provider can find them
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-openai")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "ant-test-key")
+    api_key = await provision_tenant_key(multi_provider_settings)
     app = create_app(settings=multi_provider_settings)
     async with LifespanManager(app):
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+            headers={"X-Tiresias-Api-Key": api_key},
+        ) as client:
             yield client
     await close_all_engines()
 

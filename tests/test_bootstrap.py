@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import logging
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 
 from tiresias.bootstrap import (
     first_boot,
+    first_boot_key_path,
     generate_api_key,
     hash_api_key,
     verify_api_key,
@@ -104,14 +106,72 @@ async def test_api_key_hash_stored_not_raw(tmp_data_root: Path, sample_tenant_id
     assert verify_api_key(api_key, row.api_key_hash) is True
 
 
-async def test_first_boot_logs_api_key(
+class _Stream(io.StringIO):
+    def __init__(self, tty: bool) -> None:
+        super().__init__()
+        self._tty = tty
+
+    def isatty(self) -> bool:
+        return self._tty
+
+
+def _records_text(records) -> str:
+    """Everything a handler could write: formatted message, raw msg and args."""
+    parts = []
+    for r in records:
+        parts.append(r.getMessage())
+        parts.append(str(r.msg))
+        parts.append(repr(r.args))
+        if r.exc_text:
+            parts.append(r.exc_text)
+    return "\n".join(parts)
+
+
+async def test_first_boot_never_logs_api_key_on_tty(
     tmp_data_root: Path, sample_tenant_id: str, caplog
 ):
+    """The key reaches the terminal once and no log record, at any level."""
     settings = TiresiasSettings(TIRESIAS_TENANT_ID=sample_tenant_id, TIRESIAS_DATA_ROOT=tmp_data_root)
-    with caplog.at_level(logging.INFO, logger="tiresias.bootstrap"):
+    out = _Stream(tty=True)
+    with caplog.at_level(logging.DEBUG):
         async with await get_session(sample_tenant_id, tmp_data_root) as session:
-            await first_boot(sample_tenant_id, settings, session)
-    assert "TIRESIAS API KEY" in caplog.text
+            api_key = await first_boot(sample_tenant_id, settings, session, out=out)
+    assert api_key
+    assert caplog.records, "expected at least one log record, or this test proves nothing"
+    assert api_key not in _records_text(caplog.records)
+    assert out.getvalue().count(api_key) == 1
+    assert not first_boot_key_path(settings, sample_tenant_id).exists()
+
+
+async def test_first_boot_without_tty_writes_key_file_not_logs(
+    tmp_data_root: Path, sample_tenant_id: str, caplog
+):
+    """No terminal: nothing on the stream, the key in a file, the log names the path only."""
+    settings = TiresiasSettings(TIRESIAS_TENANT_ID=sample_tenant_id, TIRESIAS_DATA_ROOT=tmp_data_root)
+    out = _Stream(tty=False)
+    with caplog.at_level(logging.DEBUG):
+        async with await get_session(sample_tenant_id, tmp_data_root) as session:
+            api_key = await first_boot(sample_tenant_id, settings, session, out=out)
+    assert api_key not in _records_text(caplog.records)
+    assert api_key not in out.getvalue()
+    path = first_boot_key_path(settings, sample_tenant_id)
+    assert path.read_text(encoding="utf-8").strip() == api_key
+    assert str(path) in caplog.text
+
+
+async def test_first_boot_key_is_redacted_if_logged_later(
+    tmp_data_root: Path, sample_tenant_id: str, caplog
+):
+    """A later log line that contains the key is redacted, not written."""
+    settings = TiresiasSettings(TIRESIAS_TENANT_ID=sample_tenant_id, TIRESIAS_DATA_ROOT=tmp_data_root)
+    with caplog.at_level(logging.DEBUG):
+        async with await get_session(sample_tenant_id, tmp_data_root) as session:
+            api_key = await first_boot(sample_tenant_id, settings, session, out=_Stream(tty=True))
+        caplog.clear()
+        logging.getLogger("tiresias.somewhere").error("upstream said: %s", api_key)
+    assert caplog.records
+    assert api_key not in _records_text(caplog.records)
+    assert "[REDACTED]" in caplog.text
 
 
 def test_port_config_env_override():

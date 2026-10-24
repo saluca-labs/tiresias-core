@@ -27,6 +27,13 @@ class TiresiasSettings(BaseSettings):
         default="onprem", alias="TIRESIAS_MODE"
     )
 
+    # Authentication opt-out for single-tenant modes. OFF by default: dedicated
+    # and onprem proxies require the tenant's first-boot API key on every
+    # route except /health and the docs. Setting this true makes every route
+    # answer anyone who can reach the port. Only for a single-user proxy bound
+    # to 127.0.0.1; logged as a WARNING at every boot. Ignored in saas mode.
+    allow_unauthenticated: bool = Field(default=False, alias="TIRESIAS_ALLOW_UNAUTHENTICATED")
+
     # Core identity
     tenant_id: str = Field(
         default_factory=lambda: str(uuid4()),
