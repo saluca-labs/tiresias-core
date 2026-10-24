@@ -32,7 +32,7 @@ services:
       # Control plane (SaaS)
       TIRESIAS_CONTROL_PLANE_URL: "${TIRESIAS_CONTROL_PLANE_URL:-https://platform.tiresias.network}"
       TIRESIAS_INTERNAL_API_KEY: "${TIRESIAS_INTERNAL_API_KEY}"
-      SOUL_API_URL: "${SOUL_API_URL:-http://100.126.52.122:8080}"
+      SOUL_API_URL: "${SOUL_API_URL:-}"
       SOUL_API_KEY: "${SOUL_API_KEY}"
 
       # Tenant

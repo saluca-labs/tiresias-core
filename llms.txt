@@ -1,0 +1,43 @@
+# tiresias-core
+
+> Source-available core of Tiresias: a self-hosted, OpenAI-compatible LLM proxy (Python 3.11+, FastAPI) with multi-provider routing, envelope-encrypted request logs, token and cost tracking and a dashboard API. FSL-1.1-Apache (SPDX FSL-1.1-ALv2).
+
+Facts agents often get wrong: this repository is the core only. Anomaly detection, SIEM integration, soulkey issuance, JWT capability tokens, chain-of-thought auditing, the hash-chained audit log and BYOK key providers are not in it. The YAML policy modules and the `evaluate-sop` router are in `src/` but the proxy never mounts or calls them, so no request is policy-checked. Only non-streaming chat uses the provider cascade. In the default `onprem` mode the `/v1/` and `/api/` routes have no authentication (as on `origin/main` 3c634b6; a pending security branch may change this). `docker compose up -d` and QUICKSTART.md do not work as shipped; run the proxy from source with `uv run uvicorn tiresias.proxy.app:app` and `TIRESIAS_KEK` set. Not on PyPI.
+
+## Complete public surface
+
+If a route, command or setting is not listed here, it does not exist in the running proxy. Routes were listed with `app.openapi()` on `create_app()`.
+
+- Routes: `GET /health`; `POST /v1/chat/completions`; `POST /v1/sessions/{session_id}/tag`; `GET /v1/sessions/{session_id}`; `GET /v1/admin/providers`; `POST /v1/admin/reload`; `GET /dash/health`; `GET /dash/v1/spend`, `/dash/v1/requests`, `/dash/v1/latency`, `/dash/v1/errors`, `/dash/v1/sessions/top`, `/dash/v1/sessions/{session_id}/replay`, `/dash/v1/traces`, `/dash/v1/providers/health`; any method on `/api/{path}`; `GET /v1/analytics/api/endpoints`, `/v1/analytics/api/costs`, `/v1/analytics/api/errors`, `/v1/analytics/unified`; any other `/v1/{path}` is forwarded to `TIRESIAS_UPSTREAM_URL`. Plus FastAPI's `/docs`, `/redoc`, `/openapi.json`
+- Request headers read: `x-tiresias-session-id`; `X-Tiresias-Api-Key` or `Authorization: Bearer tir_...` (saas mode and dashboard); `X-SoulKey` (dashboard). Body field `tiresias_metadata` is stripped and stored
+- Run: `uv run uvicorn tiresias.proxy.app:app --port 8080`. Test: `uv run --locked python -m pytest -q`. There is no CLI entry point
+- Settings (`TiresiasSettings` in src/tiresias/config.py): `TIRESIAS_MODE`, `TIRESIAS_TENANT_ID`, `TIRESIAS_KEK_PROVIDER`, `TIRESIAS_KEK`, `TIRESIAS_DATA_ROOT`, `TIRESIAS_DATABASE_URL`, `TIRESIAS_PROVIDERS`, `TIRESIAS_UPSTREAM_URL`, `TIRESIAS_GENERIC_PROXY_MODE`, `TIRESIAS_API_SERVICE`, `TIRESIAS_RETENTION_DAYS`, `TIRESIAS_USAGE_RETENTION_DAYS`, `TIRESIAS_PURGE_DEK`, `TIRESIAS_PURGE_INTERVAL_HOURS`, `TIRESIAS_REDIS_URL`, `PROXY_PORT`, `DASHBOARD_PORT`, and the enterprise-only KEK settings `TIRESIAS_AWS_KMS_*`, `TIRESIAS_AZURE_*`, `TIRESIAS_GCP_*`, `TIRESIAS_VAULT_*`
+- Other environment variables read: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `OLLAMA_API_KEY`, `OLLAMA_BASE_URL`, `SOULAUTH_URL`, `SOULWATCH_URL`, `SOULWATCH_INTERNAL_API_KEY`
+
+## Start here
+
+- [README](https://github.com/saluca-labs/tiresias-core/blob/main/README.md): how it works (diagrams), status and correction notes, install, quickstart, every route, authentication by mode
+- [AGENTS.md](https://github.com/saluca-labs/tiresias-core/blob/main/AGENTS.md): orientation, what is in src/ but unused, the numbers to trust, test command
+
+## In depth
+
+- [src/tiresias/proxy/app.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/proxy/app.py): FastAPI app and every route
+- [src/tiresias/proxy/interceptor.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/proxy/interceptor.py): what each turn records, encrypts, hashes and sends to SoulWatch
+- [src/tiresias/config.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/config.py): all settings (TiresiasSettings)
+- [src/tiresias/providers/router.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/providers/router.py): provider cascade and failover
+- [src/tiresias/encryption/envelope.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/encryption/envelope.py): per-tenant envelope encryption
+- [src/tiresias/proxy/saas_auth.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/proxy/saas_auth.py) and [src/tiresias/dashboard/auth.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/dashboard/auth.py): authentication
+- [src/tiresias/dashboard/router.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/dashboard/router.py): dashboard API routes
+
+## Security
+
+- [SECURITY.md](https://github.com/saluca-labs/tiresias-core/blob/main/SECURITY.md): reporting a vulnerability
+- [tests/known_failures.txt](https://github.com/saluca-labs/tiresias-core/blob/main/tests/known_failures.txt): tests marked xfail and why
+
+## Optional
+
+- [llms-full.txt](https://github.com/saluca-labs/tiresias-core/blob/main/llms-full.txt): README, QUICKSTART, SECURITY and AGENTS.md in full
+- [QUICKSTART.md](https://github.com/saluca-labs/tiresias-core/blob/main/QUICKSTART.md): the older Docker quickstart, with a correction note
+- [ROADMAP.md](https://github.com/saluca-labs/tiresias-core/blob/main/ROADMAP.md): planned work for the Tiresias product
+- [src/tiresias/auth/pdp.py](https://github.com/saluca-labs/tiresias-core/blob/main/src/tiresias/auth/pdp.py): the policy decision point, present but not wired into the proxy
+- [LICENSE](https://github.com/saluca-labs/tiresias-core/blob/main/LICENSE): Functional Source License 1.1, Apache 2.0 Future License
